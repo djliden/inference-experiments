@@ -73,7 +73,7 @@ model
 # COMMAND ----------
 
 out = generate_text(prompts, model, tokenizer, batch=False,
-              eos_token_id=tokenizer.eos_token_id, max_new_tokens=25)
+              eos_token_id=tokenizer.eos_token_id, max_new_tokens=50)
 
 # COMMAND ----------
 
