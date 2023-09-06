@@ -91,6 +91,8 @@ import torch.profiler as profiler
 with profiler.profile(
     record_shapes=True,
     profile_memory=True,
+    with_stack=True,
+    experimental_config=torch._C._profiler._ExperimentalConfig(verbose=True),
     activities=[profiler.ProfilerActivity.CPU, profiler.ProfilerActivity.CUDA],
 ) as prof:
   output = generate_text(prompts, model, tokenizer, eos_token_id=tokenizer.eos_token_id,
@@ -101,36 +103,35 @@ torch_profile_to_dataframe(prof).sort_values("Self CUDA %", ascending=False)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Torch Profiling: by model layer (Work in Progress)
-# MAGIC
-# MAGIC Still working out the interpretation of this; I don't think it's very valuable at present.
+# MAGIC # Visualize the PyTorch Trace (single token)
 
 # COMMAND ----------
 
-wrap_module_with_profiler(model)
+import torch.profiler as profiler
+
+with profiler.profile(
+    record_shapes=True,
+    profile_memory=True,
+    with_stack=True,
+    #on_trace_ready=torch.profiler.tensorboard_trace_handler('./tmp/log/llamalog'),
+    experimental_config=torch._C._profiler._ExperimentalConfig(verbose=True),
+    activities=[profiler.ProfilerActivity.CPU, profiler.ProfilerActivity.CUDA],
+) as prof:
+  output = generate_text("The greatest innovations in technology in the 21st century were", model, tokenizer,
+                         eos_token_id=tokenizer.eos_token_id,
+                         max_new_tokens=1)
 
 # COMMAND ----------
 
-with torch.autograd.profiler.profile(record_shapes=True, use_cuda=torch.cuda.is_available()) as prof:
-    outputs = generate_text(
-        prompts[0:2],
-        model,
-        tokenizer,
-        eos_token_id=tokenizer.eos_token_id,
-        max_new_tokens=5,
-    )
+prof.export_chrome_trace("/dbfs/<path>/baseline_trace.json")
 
 # COMMAND ----------
 
-df = torch_profile_to_dataframe(prof).sort_values("Self CUDA %", ascending=False)
+# MAGIC %md
+# MAGIC We can visualize the trace by following these steps:
+# MAGIC 1. Download the trace json file to the local machine. From the command line on the local machine: `databricks fs cp dbfs:<path>/trace.json ~/Downloads/baseline_trace.json`
+# MAGIC 2. Open the trace file with Google Chrome via `chrome://tracing`
 
-# Extract layer type using regex
-df['Layer Type'] = df['Name'].str.extract(r'model\.layers\.\d+\.(.+)')
+# COMMAND ----------
 
-# Create an aggregation dictionary for all columns except 'Name' and 'Layer Type'
-agg_dict = {col: 'mean' for col in df.columns if col not in ['Name', 'Layer Type']}
 
-# Group by Layer Type and aggregate
-grouped = df.groupby('Layer Type').agg(agg_dict).reset_index()
-
-grouped
