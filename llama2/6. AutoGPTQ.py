@@ -179,11 +179,3 @@ with profiler.profile(
                          max_new_tokens=10)
 
 torch_profile_to_dataframe(prof).sort_values("Self CUDA %", ascending=False)
-
-# COMMAND ----------
-
-df.head(30)
-
-# COMMAND ----------
-
-
