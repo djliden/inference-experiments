@@ -107,7 +107,7 @@ model.save_pretrained(save_folder)
 
 # COMMAND ----------
 
-from utils import generate_text, clear_model, torch_profile_to_dataframe, wrap_module_with_profiler
+from utils import generate_text, clear_model, torch_profile_to_dataframe
 import huggingface_hub
 import pandas as pd
 import torch
@@ -132,6 +132,11 @@ prompts = [
     "While many believe that technological advancements will be the key to solving humanity's greatest challenges, others argue that it will only exacerbate existing inequalities, leading to"
 ]
 
+huggingface_hub.login()
+
+
+# COMMAND ----------
+
 save_folder = "/dbfs/daniel.liden/models/llama2GPTQc4/"
 gptq_config = GPTQConfig(bits=4, disable_exllama=False, use_cuda_fp16=False)
 model = AutoModelForCausalLM.from_pretrained(
@@ -145,21 +150,27 @@ tokenizer = AutoTokenizer.from_pretrained(
 
 # COMMAND ----------
 
-model.config.quantization_config.__dict__
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # Throughput and Memory
+# MAGIC
+# MAGIC ## Serial Prompts
 
 # COMMAND ----------
 
 out = generate_text(prompts, model, tokenizer, batch=False,
               eos_token_id=tokenizer.eos_token_id, max_new_tokens=50)
+pd.DataFrame(out)
 
 # COMMAND ----------
 
-pd.DataFrame(out)
+# MAGIC %md
+# MAGIC ## Batch prompts
+
+# COMMAND ----------
+
+out = generate_text(prompts, model, tokenizer, batch=True,
+              eos_token_id=tokenizer.eos_token_id, max_new_tokens=50)
+out
 
 # COMMAND ----------
 
