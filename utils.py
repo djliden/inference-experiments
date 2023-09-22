@@ -9,7 +9,6 @@ import tokenizers
 import torch
 from torch.profiler import profile, record_function
 from transformers import pipeline
-from vllm import LLM, SamplingParams
 
 
 def generate_text(input_text, model, tokenizer, batch=False, **kwargs):
@@ -121,6 +120,10 @@ def generate_text(input_text, model, tokenizer, batch=False, **kwargs):
     return results
 
 def generate_text_vllm(input_text, model, batch=False, **kwargs):
+    
+    # lazy import
+    from vllm import LLM, SamplingParams
+    
     # Convert input to list if it's a string
     if isinstance(input_text, str):
         input_text = [input_text]
@@ -198,6 +201,85 @@ def generate_text_vllm(input_text, model, batch=False, **kwargs):
             results["output_text"].append(output_text)
     # cleanup
     return results
+
+def generate_text_llama_cpp_py(input_text, model, batch=False, **kwargs):
+    # Convert input to list if it's a string
+    if isinstance(input_text, str):
+        input_text = [input_text]
+    
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.empty_cache()
+
+    results = []
+
+    if batch:
+        raise("Batch support not yet enabled; see https://github.com/ggerganov/llama.cpp/pull/3228")
+        # Process all input texts in a single batch
+        # start_time = time.time()
+        # output = model(input_text, **kwargs)
+        # end_time = time.time()
+        # input_tokens = sum(output["usage"]["prompt_tokens"] for t in output)
+        # output_tokens = sum(len(t.outputs[0].token_ids) for t in output)
+        # output_text = [t.outputs[0].text for t in output]
+
+        # tokens_per_second = (output_tokens) / (
+        #     end_time - start_time
+        # )
+
+        # max_memory = (
+        #     torch.cuda.max_memory_allocated() / 1024.0**3
+        #     if torch.cuda.is_available()
+        #     else None
+        # )
+
+        # results = {
+        #     "input_tokens": input_tokens,
+        #     "output_tokens": output_tokens,
+        #     "tokens_per_second": tokens_per_second,
+        #     "elapsed_time": end_time - start_time,
+        #     "max_cuda_memory": max_memory,
+        #     "output_text": output_text,
+        # }
+
+    else:
+        results = {
+            "input_tokens": [],
+            "total_tokens": [],
+            "tokens_per_second": [],
+            "elapsed_time": [],
+            "max_cuda_memory": [],
+            "output_text": [],
+        }
+        for text in input_text:
+            start_time = time.time()
+            output = model(text, **kwargs)
+            end_time = time.time()
+
+            input_tokens = output["usage"]["prompt_tokens"]
+            output_tokens = output["usage"]["completion_tokens"]
+            output_text = output["choices"][0]
+
+            tokens_per_second = (output_tokens) / (
+                end_time - start_time
+            )
+
+            max_memory = (
+                torch.cuda.max_memory_allocated() / 1024.0**3
+                if torch.cuda.is_available()
+                else None
+            )
+
+            results["input_tokens"].append(input_tokens)
+            results["total_tokens"].append(output_tokens)
+            results["tokens_per_second"].append(tokens_per_second)
+            results["elapsed_time"].append(end_time - start_time)
+            results["max_cuda_memory"].append(max_memory)
+            results["output_text"].append(output_text)
+    # cleanup
+    return results
+
+
 
 def profile_generate_text(input_text, model, tokenizer, **kwargs):
     if isinstance(input_text, str):
