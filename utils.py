@@ -76,7 +76,7 @@ def generate_text(input_text, model, tokenizer, batch=False, **kwargs):
             "tokens_per_second": tokens_per_second,
             "elapsed_time": end_time - start_time,
             "max_cuda_memory": max_memory,
-            "output_text": output_text,
+            #"output_text": output_text,
         }
 
     else:
