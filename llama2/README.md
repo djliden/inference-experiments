@@ -19,3 +19,5 @@ This repository contains a series of notebooks demonstrating various optimizatio
 [8. Llama.cpp](8.%20llama.cpp.ipynb): This notebook shows how to use llama.cpp for model inference in C/C++, including steps to convert and quantize the model.
 
 [8a. Llama-cpp-python](8a.%20llama-cpp-python.ipynb): This notebook demonstrates how to use the high-level Python API offered by llama-cpp-python to work with the gguf-formatted and quantized model.
+
+[9. Flash Attention 2](9.%20Flash%20Attention%202.py): This notebook shows how to use flash attention 2 via the Transformers library integration.
