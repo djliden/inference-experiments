@@ -43,6 +43,10 @@ def generate_text(input_text, model, tokenizer, batch=False, **kwargs):
         **kwargs,
     )
 
+    # warmup
+    for _ in range(3):
+        pipe(["warmup"])
+
     if torch.cuda.is_available():
         torch.cuda.reset_peak_memory_stats()
         torch.cuda.empty_cache()
